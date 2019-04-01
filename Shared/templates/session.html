@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Flask_Chat_App</title>
+  </head>
+  <body>
+    <h3 style="color: #ccc;font-size: 30px;">No message yet..</h3>
+    <div class="message_holder">hi</div>
+    <div class="user_holder">bye</div>
+    <div class="group_holder">why</div>
+
+    <form method="POST">
+      <input type="text" class="username" placeholder="User Name" />
+      <button id="btn1">LogIn</button>
+      <input type="text" class="message" placeholder="Group Members" />
+      <button id="btn2" onclick="func()">Make Group</button>
+      <input type="text" class="lat" placeholder="Enter your lat" />
+      <input type="text" class="long" placeholder="Enter your long" />
+      <button id="btn3">Check Users</button>
+      <input type="text" class="new_lat" placeholder="Enter new lat" />
+      <input type="text" class="new_long" placeholder="Enter new long" />
+      <button id="btn4">New Location</button>
+      <input type="text" class="rem" placeholder="Group Name" />
+      <button id="btn7">Remove</button>
+      <input type="text" class="getinfo" placeholder="Get Group Info" />
+      <button id="btn8">Get Info</button>
+    </form>
+    <form
+      action="http://localhost:5000/uploader"
+      method="POST"
+      enctype="multipart/form-data"
+    >
+      <input type="file" id="file" name="file" />
+      <input type="submit" />
+    </form>
+    <img
+      src="http://localhost:5000/static/shared_pics/12/thumb/ShYQWwnoBgNDzVSas1Mcd78ddkG21552994745903.jpg"
+      style="height:100px"
+    />
+    <button id="btn5">Test</button>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
+    <script type="text/javascript">
+      $("form").on("submit", e => {
+        e.preventDefault();
+      });
+      function func() {
+        let members = $("input.message").val();
+        let user_name = $("input.username").val();
+
+        let arr = members.split(",");
+        $.ajax({
+          type: "POST",
+          url: "http://localhost:5000/group/add",
+          data: JSON.stringify({
+            name: "Group Name2",
+            id: user_name,
+            member_ids: arr
+          }), // or JSON.stringify ({name: 'jonas'}),
+          success: function(data) {
+            alert("data: " + data);
+          },
+          contentType: "application/json",
+          dataType: "json",
+          headers: {
+            Authorization:
+              "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NTMwODk5NTcsIm5iZiI6MTU1MzA4OTk1NywianRpIjoiNThjM2FlZmQtNzI3Yy00MGE1LTg2YzQtZTZhMzhjZTY5ODk0IiwiZXhwIjo0NjUyNjg5OTU3LCJpZGVudGl0eSI6IlMyZk9yTEh4dFlid3FVRXVYczhEdktlZUl6RDIiLCJmcmVzaCI6ZmFsc2UsInR5cGUiOiJhY2Nlc3MifQ.bdPWk4Ezke6CAgViMbFgC9hdjY_U2XYHhqpcjfZ8pyU"
+          }
+        });
+      }
+      $("#btn1").click(() => {
+        let user_name = $("input.username").val();
+        var group_socket = io("localhost:5000/groups/" + user_name, {
+          reconnection: true,
+          reconnectionDelay: 500,
+          reconnectionAttempts: Infinity,
+          transports: ["websocket"]
+        });
+        console.log(user_name);
+        /*  group_socket.on("connect", function() {
+          group_socket.emit("connected", {
+            id: user_name
+          });
+        });*/
+        $.ajax({
+          type: "POST",
+          url: "http://localhost:5000/group/get",
+          data: JSON.stringify({
+            id: user_name
+          }), // or JSON.stringify ({name: 'jonas'}),
+          success: function(data) {
+            //  alert("data: " + data);
+            dosomething(data);
+          },
+          contentType: "application/json",
+          dataType: "json"
+        });
+
+        $("div.message_holder").text("");
+        group_socket.on("my response", function(msg) {
+          console.log(msg);
+          $("h3").remove();
+          $("div.message_holder").text("");
+          for (group of msg)
+            $("div.message_holder").append(
+              '<div><b style="color: #000">' + group.id + "</b> " + "</div>"
+            );
+        });
+
+        function dosomething(msg) {
+          console.log(msg);
+          $("h3").remove();
+          $("div.message_holder").text("");
+          for (group of msg)
+            $("div.message_holder").append(
+              '<div><b style="color: #000">' + group.id + "</b> " + "</div>"
+            );
+        }
+      });
+      $("#btn3").click(() => {
+        let user_name = $("input.username").val();
+        let lat = $("input.lat").val();
+        let long = $("input.long").val();
+        var nearby_users_socket = io("localhost:5000/nearby/" + user_name);
+        nearby_users_socket.on("connect", function() {
+          nearby_users_socket.emit("connected", {
+            id: user_name
+          });
+        });
+        $.ajax({
+          type: "POST",
+          url: "http://localhost:5000/near_users/get",
+          data: JSON.stringify({
+            id: user_name,
+            lat: lat,
+            long: long
+          }), // or JSON.stringify ({name: 'jonas'}),
+          success: function(data) {
+            //  alert("data: " + data);
+            dosomethingelse(data);
+          },
+          contentType: "application/json",
+          dataType: "json"
+        });
+        $("#btn4").click(() => {
+          let user_name = $("input.username").val();
+          let lat = $("input.new_lat").val();
+          let long = $("input.new_long").val();
+          $.ajax({
+            type: "POST",
+            url: "http://localhost:5000/user/location",
+            data: JSON.stringify({
+              id: user_name,
+              latitude: lat,
+              longitude: long,
+              last_seen: 0
+            }), // or JSON.stringify ({name: 'jonas'}),
+            success: function(data) {
+              //  alert("data: " + data);
+              // dosomethingelse(data);
+            },
+            contentType: "application/json",
+            dataType: "json"
+          });
+        });
+        nearby_users_socket.on("my response2", function(msg) {
+          console.log(msg);
+          $("h3").remove();
+          $("div.user_holder").text("");
+          for (group of msg)
+            $("div.user_holder").append(
+              '<div><b style="color: #000">' + group.id + "</b> " + "</div>"
+            );
+        });
+        function dosomethingelse(msg) {
+          console.log(msg);
+          $("h3").remove();
+          $("div.user_holder").text("");
+          for (group of msg)
+            $("div.user_holder").append(
+              '<div><b style="color: #000">' + group.id + "</b> " + "</div>"
+            );
+        }
+      });
+      $("#btn5").click(() => {
+        $.ajax({
+          type: "POST",
+          url: "http://localhost:5000/get_pic",
+          data: JSON.stringify({
+            last_seen: 0
+          }), // or JSON.stringify ({name: 'jonas'}),
+          success: function(data) {
+            //  alert("data: " + data);
+            // dosomethingelse(data);
+            console.log("hi", data);
+          },
+          contentType: "application/json",
+          dataType: "json"
+        });
+      });
+      $("#btn8").click(() => {
+        let user_name = $("input.username").val();
+        let group_id = $("input.getinfo").val();
+        console.log(group_id);
+        $.ajax({
+          type: "POST",
+          url: "http://localhost:5000/group/get_group",
+          data: JSON.stringify({
+            group_id: group_id
+          }), // or JSON.stringify ({name: 'jonas'}),
+          success: function(data) {
+            //  alert("data: " + data);
+            // dosomethingelse(data);
+            console.log("hi", data);
+            $("h3").remove();
+            $("div.group_holder").text("");
+            for (group of data.members)
+              $("div.group_holder").append(
+                '<div><b style="color: #000">' + group.id + "</b> " + "</div>"
+              );
+          },
+          contentType: "application/json",
+          dataType: "json"
+        });
+
+        var group_info_socket = io("localhost:5000/groups/" + group_id);
+        group_info_socket.on("my response3", function(data) {
+          console.log("hi", data);
+
+          $("h3").remove();
+          $("div.group_holder").text("");
+          let flag = 0;
+          for (member of data.members) if (member.id === user_name) flag = 1;
+          if (flag === 1)
+            for (group of data.members)
+              $("div.group_holder").append(
+                '<div><b style="color: #000">' + group.id + "</b> " + "</div>"
+              );
+          else {
+            group_info_socket.close();
+            return;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
